@@ -1,0 +1,296 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model School {
+  id          String       @id @default(uuid())
+  name        String
+  address     String?
+  phone       String?
+  email       String?
+  logo        String?
+  createdAt   DateTime     @default(now())
+  classes     Class[]
+  users       User[]
+  notices     Notice[]
+  assignments Assignment[]
+  notes       Note[]
+}
+
+model User {
+  id            String         @id @default(uuid())
+  clerkId       String         @unique
+  email         String         @unique
+  name          String
+  phone         String?
+  role          Role           @default(STUDENT)
+  avatar        String?
+  schoolId      String?
+  school        School?        @relation(fields: [schoolId], references: [id])
+  createdAt     DateTime       @default(now())
+  teacher       Teacher?
+  student       Student?
+  notices       Notice[]
+  notifications Notification[]
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+model Class {
+  id          String       @id @default(uuid())
+  name        String
+  schoolId    String
+  school      School       @relation(fields: [schoolId], references: [id])
+  sections    Section[]
+  subjects    Subject[]
+  assignments Assignment[]
+  notices     Notice[]
+  periods     Period[]
+}
+
+model Section {
+  id                 String              @id @default(uuid())
+  name               String
+  classId            String
+  class              Class               @relation(fields: [classId], references: [id])
+  students           Student[]
+  attendanceSessions AttendanceSession[]
+  timetableSlots     TimetableSlot[]
+  notes              Note[]
+}
+
+model Teacher {
+  id                 String              @id @default(uuid())
+  userId             String              @unique
+  user               User                @relation(fields: [userId], references: [id])
+  employeeId         String?
+  phone              String?
+  subjects           Subject[]
+  attendanceSessions AttendanceSession[]
+  assignments        Assignment[]
+  notes              Note[]
+  timetableSlots     TimetableSlot[]
+}
+
+model Student {
+  id                String             @id @default(uuid())
+  userId            String             @unique
+  user              User               @relation(fields: [userId], references: [id])
+  rollNumber        String?
+  admissionNo       String?
+  dob               DateTime?
+  gender            String?
+  phone             String?
+  address           String?
+  sectionId         String?
+  section           Section?           @relation(fields: [sectionId], references: [id])
+  status            StudentStatus      @default(ACTIVE)
+  attendanceRecords AttendanceRecord[]
+  submissions       Submission[]
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  TRANSFERRED
+}
+
+model Subject {
+  id                 String              @id @default(uuid())
+  name               String
+  code               String?
+  classId            String
+  class              Class               @relation(fields: [classId], references: [id])
+  teacherId          String?
+  teacher            Teacher?            @relation(fields: [teacherId], references: [id])
+  timetableSlots     TimetableSlot[]
+  attendanceSessions AttendanceSession[]
+  assignments        Assignment[]
+  notes              Note[]
+}
+
+model AttendanceSession {
+  id        String             @id @default(uuid())
+  date      DateTime           @default(now())
+  sectionId String
+  section   Section            @relation(fields: [sectionId], references: [id])
+  subjectId String?
+  subject   Subject?           @relation(fields: [subjectId], references: [id])
+  teacherId String
+  teacher   Teacher            @relation(fields: [teacherId], references: [id])
+  period    Int?
+  records   AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id        String            @id @default(uuid())
+  sessionId String
+  session   AttendanceSession @relation(fields: [sessionId], references: [id])
+  studentId String
+  student   Student           @relation(fields: [studentId], references: [id])
+  status    AttendanceStatus  @default(PRESENT)
+  remarks   String?
+  markedAt  DateTime          @default(now())
+
+  @@unique([sessionId, studentId])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+model TimetableSlot {
+  id        String   @id @default(uuid())
+  sectionId String
+  section   Section  @relation(fields: [sectionId], references: [id])
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id])
+  teacherId String?
+  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+  dayOfWeek Int
+  period    Int
+  startTime String
+  endTime   String
+  room      String?
+
+  @@unique([sectionId, dayOfWeek, period])
+}
+
+enum NoticeStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Notice {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
+  classId   String?
+  class     Class?   @relation(fields: [classId], references: [id])
+  isPinned  Boolean  @default(false)
+  category  String   @default("General")   // ← ADD THIS
+  priority  String   @default("Normal")    // ← ADD THIS
+  createdAt DateTime @default(now())
+}
+
+model Assignment {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  fileUrl     String?
+  dueDate     DateTime?
+  maxMarks    Float?
+  teacherId   String
+  teacher     Teacher      @relation(fields: [teacherId], references: [id])
+  subjectId   String?
+  subject     Subject?     @relation(fields: [subjectId], references: [id])
+  classId     String
+  class       Class        @relation(fields: [classId], references: [id])
+  schoolId    String
+  school      School       @relation(fields: [schoolId], references: [id])
+  createdAt   DateTime     @default(now())
+  submissions Submission[]
+}
+
+model Submission {
+  id           String           @id @default(uuid())
+  assignmentId String
+  assignment   Assignment       @relation(fields: [assignmentId], references: [id])
+  studentId    String
+  student      Student          @relation(fields: [studentId], references: [id])
+  content      String?
+  fileUrl      String?
+  submittedAt  DateTime         @default(now())
+  marks        Float?
+  feedback     String?
+  status       SubmissionStatus @default(SUBMITTED)
+
+  @@unique([assignmentId, studentId])
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  GRADED
+  RETURNED
+}
+
+model Note {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  fileUrl     String?
+  subjectName String?   // ← ADD THIS
+  fileType     String?   // ← ADD THIS
+  teacherId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  subjectId   String?
+  subject     Subject? @relation(fields: [subjectId], references: [id])
+  sectionId   String?
+  section     Section? @relation(fields: [sectionId], references: [id])
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  body      String?
+  isRead    Boolean  @default(false)
+  type      String?
+  createdAt DateTime @default(now())
+}
+
+model Period {
+  id           String  @id @default(uuid())
+  classId      String
+  class        Class   @relation(fields: [classId], references: [id])
+  order        Int
+  periodNumber Int? // Null for breaks, 1-N for teaching periods
+  label        String
+  startTime    String
+  endTime      String
+  isBreak      Boolean @default(false)
+
+  @@unique([classId, order])
+}
+
+model SchoolSetting {
+  id              Int      @id @default(1)
+  platformName    String   @default("Smart Campus")
+  platformDesc    String   @default("")
+  academicSession String   @default("2026 - 2027")
+  schoolName      String   @default("")
+  schoolEmail     String   @default("")
+  schoolPhone     String   @default("")
+  schoolAddress   String   @default("")
+  schoolCity      String   @default("")
+  schoolState     String   @default("")
+  schoolWebsite   String   @default("")
+  language        String   @default("English")
+  dateFormat      String   @default("DD/MM/YYYY")
+  currency        String   @default("INR")
+  theme           String   @default("indigo")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
