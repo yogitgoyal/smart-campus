@@ -294,3 +294,4 @@ model SchoolSetting {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
