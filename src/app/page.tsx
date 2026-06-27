@@ -12,9 +12,12 @@ export default function Home() {
           </div>
           <span className="font-bold text-white text-base tracking-tight">Smart Campus</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          <Link href="/student/sign-in" className="text-sm text-gray-400 hover:text-white transition-colors px-4 py-2">
+            Student Login
+          </Link>
           <Link href="/sign-in" className="text-sm text-gray-400 hover:text-white transition-colors px-4 py-2">
-            Sign in
+            Admin Login
           </Link>
           <Link href="/sign-up"
             className="text-sm bg-white text-gray-900 hover:bg-gray-100 px-5 py-2.5 rounded-full font-semibold transition-all hover:shadow-xl hover:shadow-white/10">
@@ -444,12 +447,13 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/sign-up"
                 className="px-8 py-4 rounded-full font-bold text-white text-base transition-all hover:-translate-y-0.5"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', boxShadow: '0 0 30px rgba(124,58,237,0.5)' }}>
-                Start for free →
+                style={{ background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', boxShadow: '0 0 30px rgba(124,58,237,0.5)' }}>
+                Admin Portal →
               </Link>
-              <Link href="/sign-in"
-                className="px-8 py-4 rounded-full font-semibold text-gray-400 hover:text-white text-base transition-all border border-white/8 hover:border-white/15">
-                Sign in
+              <Link href="/student/sign-in"
+                className="px-8 py-4 rounded-full font-semibold text-base transition-all border hover:border-white/30 hover:text-white"
+                style={{ color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.15)' }}>
+                Student Login →
               </Link>
             </div>
           </div>

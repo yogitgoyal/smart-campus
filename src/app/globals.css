@@ -432,3 +432,16 @@
 .dark .bg-blue-50.text-blue-600 {
   background: rgba(124, 131, 253, 0.1) !important;
 }
+
+/* Force dark mode on html element */
+html.dark {
+  color-scheme: dark;
+}
+
+/* Fix white flash */
+html {
+  background-color: var(--background);
+}
+
+/* Student portal dark fixes */
+.dark .student-card { background-color: #0e0e1a; }

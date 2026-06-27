@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import DeleteAssignmentButton from './DeleteAssignmentButton'
 import DownloadButton from './DownloadButton'
+import SubmissionRow from './SubmissionRow'
 
 export default async function AssignmentDetailPage({
   params
@@ -177,13 +178,14 @@ export default async function AssignmentDetailPage({
 
         <div className="grid px-6 py-3 text-xs font-bold uppercase tracking-wide border-b"
           style={{
-            gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+            gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
             background: 'var(--bg-page)',
             borderColor: 'var(--border-color)',
             color: 'var(--text-muted)'
           }}>
           <span>Student</span>
           <span>Submitted</span>
+          <span>File</span>
           <span>Marks</span>
           <span>Status</span>
           <span>Feedback</span>
@@ -199,61 +201,22 @@ export default async function AssignmentDetailPage({
           </div>
         ) : (
           <div>
-            {assignment.submissions.map(sub => {
-              const statusColor = sub.status === 'GRADED'
-                ? { bg: 'rgba(16,185,129,0.1)', color: '#10b981' }
-                : sub.status === 'RETURNED'
-                ? { bg: 'rgba(245,158,11,0.1)', color: '#f59e0b' }
-                : { bg: 'rgba(99,102,241,0.1)', color: '#6366f1' }
-
-              return (
-                <div key={sub.id}
-                  className="grid items-center px-6 py-4 border-b transition-colors"
-                  style={{
-                    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
-                    borderColor: 'var(--border-color)'
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
-                      {sub.student?.user?.name?.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {sub.student?.user?.name}
-                      </p>
-                      {sub.content && (
-                        <p className="text-xs truncate max-w-xs" style={{ color: 'var(--text-muted)' }}>
-                          {sub.content}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    {new Date(sub.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                  </p>
-
-                  <p className="text-sm font-bold" style={{ color: sub.marks ? '#10b981' : 'var(--text-muted)' }}>
-                    {sub.marks !== null && sub.marks !== undefined
-                      ? `${sub.marks}${assignment.maxMarks ? ` / ${assignment.maxMarks}` : ''}`
-                      : '—'}
-                  </p>
-
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg inline-block"
-                    style={{ background: statusColor.bg, color: statusColor.color }}>
-                    {sub.status}
-                  </span>
-
-                  <p className="text-xs truncate max-w-xs" style={{ color: 'var(--text-muted)' }}>
-                    {sub.feedback || '—'}
-                  </p>
-                </div>
-              )
-            })}
+            {assignment.submissions.map(sub => (
+              <SubmissionRow
+                key={sub.id}
+                submission={{
+                  id: sub.id,
+                  content: sub.content,
+                  fileUrl: sub.fileUrl,
+                  submittedAt: sub.submittedAt.toISOString(),
+                  marks: sub.marks,
+                  status: sub.status,
+                  feedback: sub.feedback,
+                  studentName: sub.student?.user?.name || 'Unknown',
+                }}
+                maxMarks={assignment.maxMarks}
+              />
+            ))}
           </div>
         )}
       </div>

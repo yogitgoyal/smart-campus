@@ -100,7 +100,7 @@ export async function POST(req: Request) {
         email: cleanEmail,
         name: name.trim(),
         role: 'STUDENT',
-        schoolId,
+        avatar: body.password || null, 
       }
     })
 
