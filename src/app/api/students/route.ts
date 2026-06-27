@@ -30,11 +30,18 @@ export async function POST(req: Request) {
     // Find the logged-in admin's User row to get their schoolId.
     // Class.schoolId is required, so every new Class we create must belong
     // to the same school as the admin creating the student.
-    const adminUser = await prisma.user.findUnique({ where: { clerkId: userId } })
-    if (!adminUser?.schoolId) {
-      return NextResponse.json({ error: 'Admin account is not linked to a school' }, { status: 400 })
+    // Auto-create school if needed — no manual linking required
+    let school = await prisma.school.findFirst()
+    if (!school) {
+      school = await prisma.school.create({ data: { name: 'Smart Campus School' } })
     }
-    const schoolId = adminUser.schoolId
+    const schoolId = school.id
+
+    // Also link admin user to school if not already linked
+    const adminUser = await prisma.user.findUnique({ where: { clerkId: userId } })
+    if (adminUser && !adminUser.schoolId) {
+      await prisma.user.update({ where: { id: adminUser.id }, data: { schoolId } })
+    }
 
     const body = await req.json()
     const {
@@ -57,15 +64,15 @@ export async function POST(req: Request) {
     const fullAddress = [address, city, state, pincode].filter(Boolean).join(', ') || null
 
     const notesParts = [
-      bloodGroup         ? `Blood Group: ${bloodGroup}`          : null,
-      religion           ? `Religion: ${religion}`               : null,
-      nationality        ? `Nationality: ${nationality}`         : null,
-      guardianName       ? `Guardian: ${guardianName}`           : null,
-      guardianRelation   ? `Relation: ${guardianRelation}`       : null,
-      guardianPhone      ? `Guardian Phone: ${guardianPhone}`    : null,
-      guardianOccupation ? `Occupation: ${guardianOccupation}`  : null,
-      medicalNotes       ? `Medical: ${medicalNotes}`            : null,
-      allergies          ? `Allergies: ${allergies}`             : null,
+      bloodGroup ? `Blood Group: ${bloodGroup}` : null,
+      religion ? `Religion: ${religion}` : null,
+      nationality ? `Nationality: ${nationality}` : null,
+      guardianName ? `Guardian: ${guardianName}` : null,
+      guardianRelation ? `Relation: ${guardianRelation}` : null,
+      guardianPhone ? `Guardian Phone: ${guardianPhone}` : null,
+      guardianOccupation ? `Occupation: ${guardianOccupation}` : null,
+      medicalNotes ? `Medical: ${medicalNotes}` : null,
+      allergies ? `Allergies: ${allergies}` : null,
     ].filter(Boolean).join(' | ')
 
     // Resolve className + sectionName (plain strings from the form) into a
@@ -100,7 +107,7 @@ export async function POST(req: Request) {
         email: cleanEmail,
         name: name.trim(),
         role: 'STUDENT',
-        avatar: body.password || null, 
+        avatar: body.password || null,
       }
     })
 
@@ -138,7 +145,7 @@ export async function DELETE(req: Request) {
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { searchParams } = new URL(req.url)
-    const id  = searchParams.get('id')
+    const id = searchParams.get('id')
     const ids = searchParams.get('ids') // bulk: comma-separated
 
     const toDelete = ids ? ids.split(',').filter(Boolean) : id ? [id] : []
