@@ -2,6 +2,12 @@
 import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 
+const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
+  PRESENT: { color: '#10b981', bg: 'rgba(16,185,129,0.1)', label: '✓ Present' },
+  ABSENT:  { color: '#f43f5e', bg: 'rgba(244,63,94,0.1)',  label: '✗ Absent' },
+  LATE:    { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', label: '⏰ Late' },
+}
+
 export default function StudentAttendance() {
   const [sessions,  setSessions]  = useState<any[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -197,11 +203,7 @@ export default function StudentAttendance() {
             {sessions.map(session => {
               const record = session.records?.[0]
               const status = record?.status || 'NOT MARKED'
-              const statusConfig = {
-                PRESENT: { color: '#10b981', bg: 'rgba(16,185,129,0.1)',  label: '✓ Present' },
-                ABSENT:  { color: '#f43f5e', bg: 'rgba(244,63,94,0.1)',   label: '✗ Absent'  },
-                LATE:    { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  label: '⏰ Late'    },
-              }[status] || { color: 'var(--text-muted)', bg: 'var(--bg-page)', label: '— Not Marked' }
+              const statusConfig = STATUS_CONFIG[status] || { color: 'var(--text-muted)', bg: 'var(--bg-page)', label: '— Not Marked' }
 
               return (
                 <div key={session.id} className="flex items-center justify-between px-5 py-4"

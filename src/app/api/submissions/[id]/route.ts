@@ -19,7 +19,6 @@ export async function PATCH(
         marks: marks !== undefined ? parseFloat(marks) : undefined,
         feedback: feedback || null,
         status: status || 'GRADED',
-        gratedBy: undefined,
       }
     })
 

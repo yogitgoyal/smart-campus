@@ -286,7 +286,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div className="w-px h-6 mx-1" style={{ background: 'var(--border-color)' }} />
             <div className="flex items-center gap-2">
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
               <div className="hidden md:block">
                 <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
                   {user?.firstName || 'Admin'}

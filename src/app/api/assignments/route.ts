@@ -31,7 +31,7 @@ async function getOrCreateClass(classId?: string | null) {
     if (cls) return cls
   }
   // Instead of creating "General", find the first existing class
-  let cls = await prisma.class.findFirst({ orderBy: { createdAt: 'asc' } })
+  let cls = await prisma.class.findFirst({ orderBy: { name : 'asc' } })
   if (!cls) {
     const school = await getOrCreateSchool()
     cls = await prisma.class.create({ data: { name: 'Class 1', schoolId: school.id } })

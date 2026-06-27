@@ -69,7 +69,7 @@ const TAB_REQUIRED: Record<TabKey, string[]> = {
 
 // parse stored address string back into parts
 function parseAddress(raw: string | null) {
-  if (!raw) return { street: '', extra: {} }
+  if (!raw) return { street: '', extra: {} as Record<string, string> }
   const [addrPart, extraPart] = raw.split(' | EXTRA: ')
   const parts = (addrPart || '').split(', ')
   const extra: Record<string, string> = {}

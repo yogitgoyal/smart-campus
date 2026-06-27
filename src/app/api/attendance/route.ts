@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-
+import { AttendanceStatus } from '@prisma/client'
 // GET /api/attendance?sectionId=xxx&date=2026-06-26
 // Returns attendance sessions, optionally filtered to one section and/or one date.
 export async function GET(req: Request) {
@@ -88,12 +88,12 @@ export async function POST(req: Request) {
           sectionId,
           teacherId: teacher.id,
         }
-      })
+      })  
     }
 
     if (Array.isArray(records) && records.length > 0) {
       await prisma.attendanceRecord.createMany({
-        data: records.map((r: { studentId: string; status: string; remarks?: string }) => ({
+        data: records.map((r: { studentId: string; status: AttendanceStatus ; remarks?: string }) => ({
           sessionId: session!.id,
           studentId: r.studentId,
           status: r.status,

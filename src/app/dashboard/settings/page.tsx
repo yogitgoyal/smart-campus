@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useClerk, useUser } from '@clerk/nextjs'
 
 interface Settings {
   id: number
@@ -37,27 +38,6 @@ const defaults: Settings = {
   theme: 'indigo',
 }
 
-function getStrength(pw: string) {
-  let score = 0
-  if (pw.length >= 8) score++
-  if (pw.length >= 12) score++
-  if (/[A-Z]/.test(pw)) score++
-  if (/[0-9]/.test(pw)) score++
-  if (/[^A-Za-z0-9]/.test(pw)) score++
-  if (score <= 1) return { label: 'Weak', color: '#ef4444', width: '20%' }
-  if (score <= 2) return { label: 'Fair', color: '#f97316', width: '40%' }
-  if (score <= 3) return { label: 'Good', color: '#eab308', width: '60%' }
-  if (score <= 4) return { label: 'Strong', color: '#22c55e', width: '80%' }
-  return { label: 'Very Strong', color: '#10b981', width: '100%' }
-}
-
-const reqs = [
-  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
-  { label: 'One uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
-  { label: 'One number', test: (p: string) => /[0-9]/.test(p) },
-  { label: 'One special character', test: (p: string) => /[^A-Za-z0-9]/.test(p) },
-]
-
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general')
   const [loading, setLoading] = useState(true)
@@ -65,14 +45,9 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(defaults)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
-  const [pw, setPw] = useState({ current: '', next: '', confirm: '' })
-  const [showCur, setShowCur] = useState(false)
-  const [showNew, setShowNew] = useState(false)
-  const [showCon, setShowCon] = useState(false)
-  const [pwSaving, setPwSaving] = useState(false)
-  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null)
-
-  const strength = getStrength(pw.next)
+  const { openUserProfile } = useClerk()
+  const { user } = useUser()
+  const signInMethod = user?.externalAccounts?.[0]?.provider // e.g. "google"
 
   useEffect(() => {
     ;(async () => {
@@ -113,46 +88,6 @@ export default function SettingsPage() {
     } finally {
       setSaving(false)
       setTimeout(() => setMsg(null), 5000)
-    }
-  }
-
-  async function changePassword() {
-    setPwMsg(null)
-    if (!pw.current || !pw.next || !pw.confirm) {
-      setPwMsg({ ok: false, text: 'All fields are required' })
-      return
-    }
-    if (pw.next.length < 8) {
-      setPwMsg({ ok: false, text: 'Password must be at least 8 characters' })
-      return
-    }
-    if (pw.next !== pw.confirm) {
-      setPwMsg({ ok: false, text: 'New passwords do not match' })
-      return
-    }
-    if (strength.label === 'Weak' || strength.label === 'Fair') {
-      setPwMsg({ ok: false, text: 'Password is too weak — add uppercase, numbers, or special characters' })
-      return
-    }
-    setPwSaving(true)
-    try {
-      const res = await fetch('/api/settings/password', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword: pw.current, newPassword: pw.next }),
-      })
-      if (res.ok) {
-        setPwMsg({ ok: true, text: 'Password changed successfully' })
-        setPw({ current: '', next: '', confirm: '' })
-      } else {
-        const d = await res.json().catch(() => ({}))
-        setPwMsg({ ok: false, text: d.error || 'Failed to change password' })
-      }
-    } catch (err) {
-      setPwMsg({ ok: false, text: `Network error: ${err}` })
-    } finally {
-      setPwSaving(false)
-      setTimeout(() => setPwMsg(null), 5000)
     }
   }
 
@@ -275,7 +210,7 @@ export default function SettingsPage() {
                   ].map((f) => (
                     <div key={f.key}>
                       <label className={lc} style={lm}>{f.label}</label>
-                      <input value={settings[f.key]} onChange={(e) => setSettings({ ...settings, [f.key]: e.target.value })} placeholder={f.ph} className={ic} style={is} />
+                      <input value={settings[f.key]} onChange={(e) => setSettings({ ...settings, [f.key]: e.target.value})} placeholder={f.ph} className={ic} style={is} />
                     </div>
                   ))}
                 </div>
@@ -290,132 +225,34 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* SECURITY */}
+          {/* SECURITY -- delegates entirely to Clerk, since that's what actually
+              manages this admin account. The old custom form pointed at a
+              "password" field that never existed on User and couldn't ever
+              have worked, especially for accounts (like this one) signed in
+              via Google, which has no password to change in the first place. */}
           {activeTab === 'security' && (
             <div className="rounded-2xl border p-6" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(99,102,241,0.1)' }}>🛡️</div>
                 <div>
-                  <h2 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>Change Password</h2>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Ensure your account stays secure</p>
+                  <h2 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>Account Security</h2>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Manage your sign-in and password</p>
                 </div>
               </div>
 
-              {pwMsg && (
-                <div className="mb-5 px-4 py-3 rounded-xl text-sm font-medium flex items-start gap-2"
-                  style={{ color: pwMsg.ok ? '#059669' : '#e11d48', background: pwMsg.ok ? 'rgba(16,185,129,0.08)' : 'rgba(244,63,94,0.08)', border: `1px solid ${pwMsg.ok ? 'rgba(16,185,129,0.2)' : 'rgba(244,63,94,0.2)'}` }}>
-                  <span className="mt-0.5">{pwMsg.ok ? '✓' : '✕'}</span>
-                  <span className="break-all">{pwMsg.text}</span>
-                </div>
-              )}
-
-              <div className="space-y-5 max-w-md">
-                {/* Current Password */}
-                <div>
-                  <label className={lc} style={lm}>Current Password</label>
-                  <div className="relative">
-                    <input
-                      type={showCur ? 'text' : 'password'}
-                      value={pw.current}
-                      onChange={(e) => setPw({ ...pw, current: e.target.value })}
-                      placeholder="Enter current password"
-                      className={ic}
-                      style={{ ...is, paddingRight: '48px' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCur(!showCur)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm leading-none p-1 rounded-lg"
-                      style={{ color: 'var(--text-muted)' }}
-                      tabIndex={-1}>
-                      {showCur ? '🙈' : '👁️'}
-                    </button>
-                  </div>
+              <div className="max-w-md space-y-4">
+                <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-page)' }}>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    {signInMethod
+                      ? <>You signed in with <strong className="capitalize">{signInMethod}</strong>. Password changes, connected accounts, and two-factor authentication are all managed securely through Clerk.</>
+                      : <>Your password, connected accounts, and two-factor authentication are all managed securely through Clerk.</>
+                    }
+                  </p>
                 </div>
 
-                {/* New Password */}
-                <div>
-                  <label className={lc} style={lm}>New Password</label>
-                  <div className="relative">
-                    <input
-                      type={showNew ? 'text' : 'password'}
-                      value={pw.next}
-                      onChange={(e) => setPw({ ...pw, next: e.target.value })}
-                      placeholder="Create a strong password"
-                      className={ic}
-                      style={{ ...is, paddingRight: '48px' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNew(!showNew)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm leading-none p-1 rounded-lg"
-                      style={{ color: 'var(--text-muted)' }}
-                      tabIndex={-1}>
-                      {showNew ? '🙈' : '👁️'}
-                    </button>
-                  </div>
-
-                  {pw.next.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold" style={{ color: strength.color }}>{strength.label}</span>
-                      </div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border-color)' }}>
-                        <div className="h-full rounded-full transition-all duration-300" style={{ width: strength.width, background: strength.color }} />
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-1">
-                        {reqs.map((r) => {
-                          const pass = r.test(pw.next)
-                          return (
-                            <div key={r.label} className="flex items-center gap-1.5">
-                              <span className="text-xs" style={{ color: pass ? '#10b981' : 'var(--text-muted)' }}>{pass ? '✓' : '○'}</span>
-                              <span className="text-xs" style={{ color: pass ? '#10b981' : 'var(--text-muted)' }}>{r.label}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Confirm Password */}
-                <div>
-                  <label className={lc} style={lm}>Confirm New Password</label>
-                  <div className="relative">
-                    <input
-                      type={showCon ? 'text' : 'password'}
-                      value={pw.confirm}
-                      onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
-                      placeholder="Re-enter new password"
-                      className={ic}
-                      style={{ ...is, paddingRight: '48px' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCon(!showCon)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm leading-none p-1 rounded-lg"
-                      style={{ color: 'var(--text-muted)' }}
-                      tabIndex={-1}>
-                      {showCon ? '🙈' : '👁️'}
-                    </button>
-                  </div>
-                  {pw.confirm.length > 0 && (
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <span className="text-xs" style={{ color: pw.next === pw.confirm ? '#10b981' : '#ef4444' }}>
-                        {pw.next === pw.confirm ? '✓' : '✕'}
-                      </span>
-                      <span className="text-xs" style={{ color: pw.next === pw.confirm ? '#10b981' : '#ef4444' }}>
-                        {pw.next === pw.confirm ? 'Passwords match' : 'Passwords do not match'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-2">
-                  <button onClick={changePassword} disabled={pwSaving} className={bp} style={bg}>
-                    {pwSaving ? 'Changing...' : '🔑 Change Password'}
-                  </button>
-                </div>
+                <button onClick={() => openUserProfile()} className={bp} style={bg}>
+                  🔑 Manage Account Security
+                </button>
               </div>
             </div>
           )}

@@ -41,7 +41,7 @@ export default async function StudentAssignmentDetailPage({
   }
 
   const now = new Date()
-  const isOverdue = assignment.dueDate && new Date(assignment.dueDate) < now
+  const isOverdue = assignment.dueDate ? new Date(assignment.dueDate) < now : false
   const submission = assignment.submissions[0] || null
 
   return (

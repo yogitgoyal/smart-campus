@@ -28,7 +28,6 @@ export async function GET() {
       id: cls.id,
       name: cls.name,
       schoolId: cls.schoolId,
-      createdAt: cls.createdAt,
       sections: cls.sections,
       _count: counts[i],
     }))
@@ -79,7 +78,7 @@ export async function DELETE(req: Request) {
 
     await prisma.submission.deleteMany({ where: { assignment: { classId: id } } })
     await prisma.assignment.deleteMany({ where: { classId: id } })
-    await prisma.note.deleteMany({ where: { classId: id } })
+    await prisma.note.deleteMany({ where: { section: { classId: id } } })
     await prisma.attendanceRecord.deleteMany({ where: { session: { section: { classId: id } } } })
     await prisma.attendanceSession.deleteMany({ where: { section: { classId: id } } })
     await prisma.timetableSlot.deleteMany({ where: { section: { classId: id } } })
